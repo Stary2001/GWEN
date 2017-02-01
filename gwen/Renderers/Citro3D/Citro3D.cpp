@@ -23,6 +23,7 @@ namespace Gwen
 			last_texture = NULL;
 			m_vertices = (Vertex*)linearAlloc(m_max_vertices * sizeof(Vertex));
 			m_num_vertices = 0;
+			m_last_num_vertices = 0;
 
 			for ( int i = 0; i < m_max_vertices; i++ )
 			{
@@ -60,8 +61,13 @@ namespace Gwen
 
 			Mtx_OrthoTilt(&projection, 0.0, 320.0, 240.0, 0.0, 0.0, 1.0, true);
 
-			m_tex_env = C3D_GetTexEnv(0);
-			DisableTextures();
+			m_tev = C3D_GetTexEnv(0);
+			C3D_TexEnvSrc(m_tev, C3D_Both, GPU_PRIMARY_COLOR, GPU_TEXTURE0, 0);
+			C3D_TexEnvOp(m_tev, C3D_Both, 0, 0, 0);
+			C3D_TexEnvFunc(m_tev, C3D_Both, GPU_ADD);
+
+			textures_enabled = false;
+			//DisableTextures();
 		}
 
 		void Citro3D::Begin()
@@ -75,6 +81,10 @@ namespace Gwen
 		{
 			Flush();
 			C3D_FrameEnd(0);
+
+			m_num_vertices = 0; // Reset the buffer.
+			m_last_num_vertices = 0;
+			last_texture = NULL; // invalidate
 		}
 
 		void Citro3D::SetDrawColor( Gwen::Color color )
@@ -87,20 +97,18 @@ namespace Gwen
 
 		void Citro3D::Flush()
 		{
-			if(m_num_vertices != 0)
+			if(m_num_vertices != m_last_num_vertices)
 			{
-				C3D_DrawArrays(GPU_TRIANGLES, 0, m_num_vertices);
+				C3D_DrawArrays(GPU_TRIANGLES, m_last_num_vertices, m_num_vertices - m_last_num_vertices);
 			}
-			m_num_vertices = 0;
+			m_last_num_vertices = m_num_vertices;
 		}
 
 		void Citro3D::AddVertexColored(int x, int y)
 		{
-			if(textures_enabled)
-			{
-				Flush();
-				DisableTextures();
-			}
+			if(m_num_vertices == m_max_vertices) { printf("vertex buffer overflow, clipping!\n"); return; }
+
+			//DisableTextures();
 
 			int i = m_num_vertices++;
 			m_vertices[i].x = x;
@@ -113,16 +121,16 @@ namespace Gwen
 
 		void Citro3D::AddVertexTextured(int x, int y, float u, float v)
 		{
-			if(!textures_enabled)
+			if(m_num_vertices == m_max_vertices) { Flush(); }
+			/*if(!textures_enabled)
 			{
 				Flush();
 				EnableTextures();
-			}
+			}*/
 
 			int i = m_num_vertices++;
 			m_vertices[i].x = x;
 			m_vertices[i].y = y;
-			m_vertices[i].a = 0;
 
 			m_vertices[i].u = u;
 			m_vertices[i].v = v;
@@ -197,13 +205,13 @@ namespace Gwen
 
 			// maths :(
 			C3D_SetScissor(GPU_SCISSOR_NORMAL, scr_h - y1, scr_w - x1, scr_h - y0, scr_w - x0); 
-		};
+		}
 
 		void Citro3D::EndClip()
 		{
 			Flush();
 			C3D_SetScissor(GPU_SCISSOR_DISABLE, 0, 0, 0, 0);
-		};
+		}
 
 		void Citro3D::LoadTexture( Gwen::Texture* pTexture )
 		{
@@ -258,21 +266,27 @@ namespace Gwen
 			}
 		}
 
-		void Citro3D::EnableTextures()
+		/*void Citro3D::EnableTextures()
 		{
-			textures_enabled = true;
-			C3D_TexEnvSrc(m_tex_env, C3D_Both, GPU_TEXTURE0, 0, 0);
-			C3D_TexEnvOp(m_tex_env, C3D_Both, 0, 0, 0);
-			C3D_TexEnvFunc(m_tex_env, C3D_Both, GPU_REPLACE);
+			if(!textures_enabled)
+			{
+				printf("Textures on\n");
+				Flush();
+				textures_enabled = true;
+				//C3D_SetTexEnv
+			}
 		}
 
 		void Citro3D::DisableTextures()
 		{
-			textures_enabled = false;
-			C3D_TexEnvSrc(m_tex_env, C3D_Both, GPU_PRIMARY_COLOR, 0, 0);
-			C3D_TexEnvOp(m_tex_env, C3D_Both, 0, 0, 0);
-			C3D_TexEnvFunc(m_tex_env, C3D_Both, GPU_REPLACE);
-		}
+			if(textures_enabled)
+			{
+				printf("Textures off\n");
+				Flush();
+				textures_enabled = false;
+				last_texture = NULL; // invalidate
+			}
+		}*/
 
 		void Citro3D::BindTexture(Gwen::Texture *tex)
 		{
@@ -286,6 +300,9 @@ namespace Gwen
 
 		void Citro3D::DrawTexturedRect( Gwen::Texture* pTexture, Gwen::Rect rect, float u1, float v1, float u2, float v2 )
 		{
+			if(m_num_vertices == m_max_vertices) { printf("vertex buffer overflow, clipping!\n"); return; }
+
+			//EnableTextures();
 			BindTexture(pTexture);
 			Translate(rect);
 

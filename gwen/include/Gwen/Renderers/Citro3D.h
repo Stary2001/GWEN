@@ -60,6 +60,7 @@ namespace Gwen
 				bool textures_enabled;
 				Vertex *m_vertices;
 				int m_num_vertices;
+				int m_last_num_vertices;
 				const int m_max_vertices = 1023; 
 
 				void Flush();
@@ -70,7 +71,8 @@ namespace Gwen
 				Gwen::Texture *last_texture;
 				void BindTexture(Gwen::Texture *tex);
 				
-				C3D_TexEnv			*m_tex_env;
+				C3D_TexEnv			*m_tev;
+
 				float m_color_r, m_color_g, m_color_b, m_color_a;
 
 				C3D_RenderTarget 	*m_render_target;
