@@ -167,8 +167,6 @@ namespace Gwen
 
 		void Citro3D::LoadFont( Gwen::Font* font )
 		{
-			printf("LoadFont!\n");
-
 			FontInfo *fi = new FontInfo();
 			TGLP_s* glyph_info = fontGetGlyphInfo();
 			fi->glyphSheets = (C3D_Tex*)malloc(sizeof(C3D_Tex)*glyph_info->nSheets);
@@ -185,13 +183,13 @@ namespace Gwen
 			}
 
 			font->data = fi;
-
-			printf("Loaded %i sheets....\n", glyph_info->nSheets);
 		}
 
 		void Citro3D::FreeFont( Gwen::Font* pFont )
 		{
-			printf("FreeFont stub!!\n");
+			FontInfo *fi = (FontInfo*)pFont->data;
+			free(fi->glyphSheets);
+			delete fi;
 		}
 
 		void Citro3D::RenderText(Gwen::Font* pFont, Gwen::Point pos, const Gwen::UnicodeString & text)
@@ -201,7 +199,7 @@ namespace Gwen
 			{
 				LoadFont(pFont);
 			}
-			//printf("RenderText stub!!\n");
+
 			//EnableTextures();
 			
 			Translate(pos.x, pos.y);
@@ -237,11 +235,9 @@ namespace Gwen
 					fontGlyphPos_s data;
 					fontCalcGlyphPos(&data, glyphIdx, flags, scale, scale);
 
-					//Bind the correct texture sheet
 					if (data.sheetIndex != lastSheet)
 					{
 						Flush();
-						//printf("Sheet: %i of %i\n", data.sheetIndex, glyphInfo->nSheets);
 						lastSheet = data.sheetIndex;
 						C3D_TexBind(0, &finfo->glyphSheets[lastSheet]);
 					}
