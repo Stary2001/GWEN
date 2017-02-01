@@ -222,7 +222,7 @@ namespace Gwen
 			u32 flags = GLYPH_POS_CALC_VTXCOORD;
 			int lastSheet = -1;
 
-			while(code = (*p++))
+			while((code = *p++))
 			{
 				if (code == '\n')
 				{
@@ -277,7 +277,7 @@ namespace Gwen
 			float h = glyph_info->cellHeight * scale;
 
 			const wchar_t *p = text.data();
-			while(code = (*p++))
+			while((code = *p++))
 			{
 				int gi = fontGlyphIndexFromCodePoint(code);
 				fontGlyphPos_s data;
