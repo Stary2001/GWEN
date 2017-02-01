@@ -281,10 +281,8 @@ namespace Gwen
 			float h = glyph_info->cellHeight * scale;
 
 			const wchar_t *p = text.data();
-			printf("text: ");
 			while(code = (*p++))
 			{
-				printf("%c", code & 0xff);
 				int gi = fontGlyphIndexFromCodePoint(code);
 				fontGlyphPos_s data;
 				fontCalcGlyphPos(&data, gi, flags, scale, scale);
@@ -315,7 +313,6 @@ namespace Gwen
 				scr_w = 400;
 			}
 
-			//printf("Scissor rect %i,%i %ix%i\n", rect.x, rect.y, rect.w, rect.h);
 			// maths :(
 			C3D_SetScissor(GPU_SCISSOR_NORMAL, scr_h - y1, scr_w - x1, scr_h - y0, scr_w - x0); 
 		}
