@@ -24,48 +24,69 @@ namespace Gwen
 
 				ThreeDS()
 				{
-					m_Canvas = NULL;
-					m_MouseX = 0;
-					m_MouseY = 0;
-                    m_LeftMouseDown = false;
-                    m_RightMouseDown = false;
-                    m_MiddleMouseDown = false;
-                    m_XButton1MouseDown = false;
-                    m_XButton2MouseDown = false;
+					m_canvas = NULL;
+					m_lastx = 0;
+					m_lasty = 0;
+                    m_touching = false;
 				}
 
-				void Initialize( Gwen::Controls::Canvas* c )
+				void Initialize(Gwen::Controls::Canvas* c)
 				{
-					m_Canvas = c;
+					m_canvas = c;
 				}
 
-				unsigned char TranslateKeyCode( int iKeyCode )
+				unsigned char TranslateKeyCode(int iKeyCode)
 				{
-					switch ( iKeyCode )
-					{
-
-					}
-
 					return Gwen::Key::Invalid;
 				}
 
-				bool ProcessMessage()
+				bool Poll()
 				{
-					if ( !m_Canvas ) { return false; }
+					if (!m_canvas) { return false; }
+
+					u32 kDown = hidKeysDown();
+					u32 kUp = hidKeysUp();
+					u32 kHeld = hidKeysHeld();
+
+					touchPosition touch;
+
+					if(kDown & KEY_TOUCH)
+					{
+						hidTouchRead(&touch);
+						m_touching = true;
+						m_lastx = touch.px;
+						m_lasty = touch.py;
+						m_canvas->InputMouseMoved(touch.px, touch.py, 0, 0);
+
+						return m_canvas->InputMouseButton(0, true);
+					}
+					else if(kUp & KEY_TOUCH)
+					{
+						m_touching = false;
+						m_lastx = 0;
+						m_lasty = 0;
+						return m_canvas->InputMouseButton(0, false);
+					}
+					else if(kHeld & KEY_TOUCH)
+					{
+						hidTouchRead(&touch);
+						int dx = touch.px - m_lastx;
+						int dy = touch.px - m_lasty;
+
+						m_lastx = touch.px;
+						m_lasty = touch.py;
+						m_canvas->InputMouseMoved(touch.px, touch.py, dx, dy);
+					}
 
 					return false;
 				}
 
 			protected:
 
-				Gwen::Controls::Canvas*	m_Canvas;
-				int m_MouseX;
-				int m_MouseY;
-                bool m_LeftMouseDown;
-                bool m_RightMouseDown;
-                bool m_MiddleMouseDown;
-                bool m_XButton1MouseDown;
-                bool m_XButton2MouseDown;
+				Gwen::Controls::Canvas*	m_canvas;
+				int m_lastx;
+				int m_lasty;
+                bool m_touching;
 
 		};
 	}

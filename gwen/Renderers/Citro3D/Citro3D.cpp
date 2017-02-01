@@ -18,6 +18,11 @@ namespace Gwen
 {
 	namespace Renderer
 	{
+		struct FontInfo
+		{
+			C3D_Tex *glyphSheets;
+		};
+
 		Citro3D::Citro3D( C3D_RenderTarget *target, gfxScreen_t screen) : m_render_target(target), m_screen(screen), m_size(Gwen::Rect(1,1))
 		{
 			last_texture = NULL;
@@ -99,7 +104,7 @@ namespace Gwen
 		{
 			if(m_num_vertices != m_last_num_vertices)
 			{
-				C3D_DrawArrays(GPU_TRIANGLES, m_last_num_vertices, m_num_vertices - m_last_num_vertices);
+				C3D_DrawArrays(GPU_TRIANGLE_STRIP, m_last_num_vertices, m_num_vertices - m_last_num_vertices);
 			}
 			m_last_num_vertices = m_num_vertices;
 		}
@@ -147,8 +152,6 @@ namespace Gwen
 			AddVertexColored(x0, y0);
 			AddVertexColored(x0, y1);
 			AddVertexColored(x1, y0);
-			AddVertexColored(x1, y0);
-			AddVertexColored(x0, y1);
 			AddVertexColored(x1, y1);
 		}
 
@@ -164,7 +167,26 @@ namespace Gwen
 
 		void Citro3D::LoadFont( Gwen::Font* font )
 		{
-			printf("LoadFont stub!!\n");
+			printf("LoadFont!\n");
+
+			FontInfo *fi = new FontInfo();
+			TGLP_s* glyph_info = fontGetGlyphInfo();
+			fi->glyphSheets = (C3D_Tex*)malloc(sizeof(C3D_Tex)*glyph_info->nSheets);
+			for (int i = 0; i < glyph_info->nSheets; i++)
+			{
+				C3D_Tex* tex = &fi->glyphSheets[i];
+				tex->data = fontGetGlyphSheetTex(i);
+				tex->fmt = (GPU_TEXCOLOR)glyph_info->sheetFmt;
+				tex->size = glyph_info->sheetSize;
+				tex->width = glyph_info->sheetWidth;
+				tex->height = glyph_info->sheetHeight;
+				tex->param = GPU_TEXTURE_MAG_FILTER(GPU_LINEAR) | GPU_TEXTURE_MIN_FILTER(GPU_LINEAR)
+					| GPU_TEXTURE_WRAP_S(GPU_CLAMP_TO_EDGE) | GPU_TEXTURE_WRAP_T(GPU_CLAMP_TO_EDGE);
+			}
+
+			font->data = fi;
+
+			printf("Loaded %i sheets....\n", glyph_info->nSheets);
 		}
 
 		void Citro3D::FreeFont( Gwen::Font* pFont )
@@ -172,15 +194,105 @@ namespace Gwen
 			printf("FreeFont stub!!\n");
 		}
 
-		void Citro3D::RenderText( Gwen::Font* pFont, Gwen::Point pos, const Gwen::UnicodeString & text )
+		void Citro3D::RenderText(Gwen::Font* pFont, Gwen::Point pos, const Gwen::UnicodeString & text)
 		{
-			printf("RenderText stub!!\n");
+			if(!pFont) return;
+			if(!pFont->data)
+			{
+				LoadFont(pFont);
+			}
+			//printf("RenderText stub!!\n");
+			//EnableTextures();
+			
+			Translate(pos.x, pos.y);
+
+			int x,y;
+			x = pos.x;
+			y = pos.y;
+
+			FontInfo *finfo = (FontInfo*)pFont->data;
+			TGLP_s* glyph_info = fontGetGlyphInfo();
+
+			float gwen_scale = Scale();
+			float font_adjust_scale = pFont->size / glyph_info->cellHeight;
+			float scale = gwen_scale * font_adjust_scale;
+
+			//ssize_t  units;
+			wchar_t code;
+
+			const wchar_t* p = (const wchar_t*)text.data();
+			u32 flags = GLYPH_POS_CALC_VTXCOORD;
+			int lastSheet = -1;
+
+			while(code = (*p++))
+			{
+				if (code == '\n')
+				{
+					x = pos.x;
+					y += scale*fontGetInfo()->lineFeed;
+				}
+				else if (code > 0)
+				{
+					int glyphIdx = fontGlyphIndexFromCodePoint(code);
+					fontGlyphPos_s data;
+					fontCalcGlyphPos(&data, glyphIdx, flags, scale, scale);
+
+					//Bind the correct texture sheet
+					if (data.sheetIndex != lastSheet)
+					{
+						Flush();
+						//printf("Sheet: %i of %i\n", data.sheetIndex, glyphInfo->nSheets);
+						lastSheet = data.sheetIndex;
+						C3D_TexBind(0, &finfo->glyphSheets[lastSheet]);
+					}
+
+					int x0 = x+data.vtxcoord.left;
+					int y0 = y+data.vtxcoord.top;
+					int x1 = x+data.vtxcoord.right;
+					int y1 = y+data.vtxcoord.bottom;
+
+					AddVertexTextured(x0, y0, data.texcoord.left,  data.texcoord.top);
+					AddVertexTextured(x0, y1, data.texcoord.left,  data.texcoord.bottom);
+					AddVertexTextured(x1, y0, data.texcoord.right, data.texcoord.top);
+					AddVertexTextured(x1, y1, data.texcoord.right, data.texcoord.bottom);
+
+					x += data.xAdvance;
+				}
+			}
 		}
 
 		Gwen::Point Citro3D::MeasureText( Gwen::Font* pFont, const Gwen::UnicodeString & text )
 		{
-			printf("MeasureText stub!!\n");
-			return Gwen::Point(0, 0);
+			TGLP_s* glyph_info = fontGetGlyphInfo();
+			u32 flags = GLYPH_POS_CALC_VTXCOORD;
+
+			float gwen_scale = Scale();
+			float font_adjust_scale = pFont->size / glyph_info->cellHeight;
+			float scale = gwen_scale * font_adjust_scale;
+
+			wchar_t code;
+			
+			if(!pFont->realsize)
+			{
+				pFont->realsize = pFont->size * scale;
+			}
+
+			float w = 0;
+			float h = glyph_info->cellHeight * scale;
+
+			const wchar_t *p = text.data();
+			printf("text: ");
+			while(code = (*p++))
+			{
+				printf("%c", code & 0xff);
+				int gi = fontGlyphIndexFromCodePoint(code);
+				fontGlyphPos_s data;
+				fontCalcGlyphPos(&data, gi, flags, scale, scale);
+				w += (data.vtxcoord.right - data.vtxcoord.left) * scale;
+				w += data.xAdvance * scale;
+			}
+
+			return Gwen::Point((int)w, (int)h);
 		}
 
 		void Citro3D::StartClip()
@@ -203,6 +315,7 @@ namespace Gwen
 				scr_w = 400;
 			}
 
+			//printf("Scissor rect %i,%i %ix%i\n", rect.x, rect.y, rect.w, rect.h);
 			// maths :(
 			C3D_SetScissor(GPU_SCISSOR_NORMAL, scr_h - y1, scr_w - x1, scr_h - y0, scr_w - x0); 
 		}
@@ -298,7 +411,7 @@ namespace Gwen
 			}
 		}
 
-		void Citro3D::DrawTexturedRect( Gwen::Texture* pTexture, Gwen::Rect rect, float u1, float v1, float u2, float v2 )
+		void Citro3D::DrawTexturedRect(Gwen::Texture* pTexture, Gwen::Rect rect, float u1, float v1, float u2, float v2)
 		{
 			if(m_num_vertices == m_max_vertices) { printf("vertex buffer overflow, clipping!\n"); return; }
 
@@ -314,8 +427,6 @@ namespace Gwen
 			AddVertexTextured(x0, y0, u1, v1);
 			AddVertexTextured(x0, y1, u1, v2);
 			AddVertexTextured(x1, y0, u2, v1);
-			AddVertexTextured(x1, y0, u2, v1);
-			AddVertexTextured(x0, y1, u1, v2);
 			AddVertexTextured(x1, y1, u2, v2);
 		}
 
