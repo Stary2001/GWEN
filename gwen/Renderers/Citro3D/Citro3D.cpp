@@ -149,6 +149,7 @@ namespace Gwen
 			int y0 = rect.y;
 			int x1 = rect.x+rect.w;
 			int y1 = rect.y+rect.h;
+
 			AddVertexColored(x0, y0);
 			AddVertexColored(x0, y1);
 			AddVertexColored(x1, y0);
@@ -238,6 +239,7 @@ namespace Gwen
 					if (data.sheetIndex != lastSheet)
 					{
 						Flush();
+						last_texture = NULL; // IMPORTANT
 						lastSheet = data.sheetIndex;
 						C3D_TexBind(0, &finfo->glyphSheets[lastSheet]);
 					}
@@ -296,10 +298,10 @@ namespace Gwen
 			Gwen::Rect rect = ClipRegion();
 			float scale = Scale();
 
-			float x0 = (float)rect.x * scale;
-			float y0 = (float)rect.y * scale;
-			float x1 = (float)(rect.x+rect.w) * scale;
-			float y1 = (float)(rect.y+rect.h) * scale;
+			int x0 = rect.x * scale;
+			int y0 = rect.y * scale;
+			int x1 = (rect.x+rect.w) * scale;
+			int y1 = (rect.y+rect.h) * scale;
 
 			int scr_w = 320;
 			int scr_h = 240;
