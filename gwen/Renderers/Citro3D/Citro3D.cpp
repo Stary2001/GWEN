@@ -286,6 +286,11 @@ namespace Gwen
 				fontCalcGlyphPos(&data, gi, flags, scale, scale);
 				w += (data.vtxcoord.right - data.vtxcoord.left) * scale;
 				w += data.xAdvance * scale;
+
+				if(code == ' ')
+				{
+					w += data.xAdvance * scale;
+				}
 			}
 
 			return Gwen::Point((int)w, (int)h);
