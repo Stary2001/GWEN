@@ -101,6 +101,12 @@ clean:
 	@echo clean ...
 	@rm -fr $(BUILD) lib
 
+install:
+	mkdir -p $(DEVKITPRO)/portlibs/3ds/gwen/lib/ $(DEVKITPRO)/portlibs/3ds/gwen/include
+	cp -r lib/libgwen.a $(DEVKITPRO)/portlibs/3ds/gwen/lib/
+	cp -r include/Gwen $(DEVKITPRO)/portlibs/3ds/gwen/include/
+	@echo "installed!"
+
 #---------------------------------------------------------------------------------
 else
 
