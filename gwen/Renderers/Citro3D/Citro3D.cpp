@@ -71,6 +71,9 @@ namespace Gwen
 			C3D_TexEnvOp(m_tev, C3D_Both, 0, 0, 0);
 			C3D_TexEnvFunc(m_tev, C3D_Both, GPU_ADD);
 
+			// Configure depth test to overwrite pixels with the same depth (important!!)
+			C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
+
 			textures_enabled = false;
 			//DisableTextures();
 		}
@@ -220,6 +223,7 @@ namespace Gwen
 			wchar_t code;
 
 			const wchar_t* p = (const wchar_t*)text.data();
+
 			u32 flags = GLYPH_POS_CALC_VTXCOORD;
 			int lastSheet = -1;
 
