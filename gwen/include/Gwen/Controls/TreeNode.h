@@ -58,6 +58,8 @@ namespace Gwen
 				Event::Caller	onSelectChange;
 				Event::Caller	onSelect;
 				Event::Caller	onUnselect;
+				Event::Caller	onOpen;
+				Event::Caller	onClose;
 
 
 				/*protected:*/

@@ -192,8 +192,11 @@ namespace Gwen
 		void Citro3D::FreeFont( Gwen::Font* pFont )
 		{
 			FontInfo *fi = (FontInfo*)pFont->data;
-			free(fi->glyphSheets);
-			delete fi;
+			if(fi != NULL)
+			{
+				free(fi->glyphSheets);
+				delete fi;
+			}
 		}
 
 		void Citro3D::RenderText(Gwen::Font* pFont, Gwen::Point pos, const Gwen::UnicodeString & text)

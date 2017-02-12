@@ -153,6 +153,7 @@ void TreeNode::SetImage( const TextObject & text )
 
 void TreeNode::Open()
 {
+	onOpen.Call( this );
 	m_InnerPanel->Show();
 
 	if ( m_ToggleButton ) { m_ToggleButton->SetToggleState( true ); }
@@ -162,6 +163,7 @@ void TreeNode::Open()
 
 void TreeNode::Close()
 {
+	onClose.Call( this );
 	m_InnerPanel->Hide();
 
 	if ( m_ToggleButton ) { m_ToggleButton->SetToggleState( false ); }
